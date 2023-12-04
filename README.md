@@ -126,8 +126,6 @@ The trained LSTM model is saved for future predictions.
 
 `model.save("saved_model.h5")`
 
-
-
 `with open('scaler.pkl', 'wb') as scaler_file:`
 
 
