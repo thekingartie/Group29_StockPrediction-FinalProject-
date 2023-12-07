@@ -192,32 +192,32 @@ cleaned_dataset.isnull().sum().sum()
 
 print(cleaned_dataset.columns)
 
-"""***FEATURE ENGINEERING AND IMPORTANCE***
+cleaned_dataset
+
+# Selecting wanted features from cleaned dataset
+assigned_list = ['Open', 'High', 'Low', 'Close']
+
+feature_df = cleaned_dataset[assigned_list]
+feature_df
+
+X= feature_df.drop(columns=['Close'])
+y = feature_df['Close']
+
+X,y
+
+"""# ***FEATURE ENGINEERING AND IMPORTANCE***
 
 Data Scaling
 """
 
 # Normalize the new filtered dataset
 scaler = MinMaxScaler(feature_range=(0,1))
-final_dataset = cleaned_dataset.values
 
-train_data = final_dataset[0:987,:]
-valid_data = final_dataset[987:,:]
+X_scaled = scaler.fit_transform(X)
 
-cleaned_dataset.index = cleaned_dataset.Date
-cleaned_dataset.drop("Date",axis=1,inplace=True)
-scaler = MinMaxScaler(feature_range=(0,1))
-scaled_data = scaler.fit_transform(final_dataset)
+X_scaled_df = pd.DataFrame(X_scaled, columns = X.columns)
 
-x_train_data,y_train_data=[],[]
-
-for i in range(60,len(train_data)):
-    x_train_data.append(scaled_data[i-60:i,0])
-    y_train_data.append(scaled_data[i,0])
-
-x_train_data,y_train_data=np.array(x_train_data),np.array(y_train_data)
-
-x_train_data=np.reshape(x_train_data,(x_train_data.shape[0],x_train_data.shape[1],1))
+X_scaled_df.head()
 
 # Calculate the correlation matrix for the Dataframe
 correlation_matrix = cleaned_dataset.corr()
@@ -263,13 +263,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import numpy as np
 
-# Remove the 'Closing Price' column from the DataFrame 'features'to create the feature matrix 'X'
-X = cleaned_dataset.drop("Close", axis=1)
 
-# Extract the 'Closing Price' column as the target variable 'y'
-y = cleaned_dataset["Close"]
-
-x_train, x_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
+x_train, x_test, y_train, y_test = train_test_split(X_scaled_df, y, test_size = 0.2, random_state = 42)
 
 # Convert X_train to a NumPy array and reshape
 x_train_reshaped = x_train.values.reshape((x_train.shape[0], 1, x_train.shape[1]))
@@ -299,32 +294,17 @@ y_test_array = y_test.values
 results = model.evaluate(X_test_reshaped, y_test_array, verbose=0)
 print(f"Fold Loss: {results}")
 
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-
-# Assuming 'Date' is the index column in your DataFrame
-X_test_reshaped = []
-
-for i in range(60, cleaned_dataset.shape[0]):
-    X_test_reshaped.append(cleaned_dataset.loc[cleaned_dataset.index[i - 60:i], 'Close'].values)
-
-# Pad sequences to ensure uniform length
-X_test_reshaped = pad_sequences(X_test_reshaped, dtype='float32', padding='post', truncating='post')
-
-# Assuming 'Close' is the name of the column you want to predict
-X_test_reshaped = np.reshape(X_test_reshaped, (X_test_reshaped.shape[0], X_test_reshaped.shape[1]))
-
-# Assuming 'Close' is the name of the column you want to predict
-X_test_reshaped = np.reshape(X_test_reshaped, (X_test_reshaped.shape[0], 1, X_test_reshaped.shape[1]))
-
-predicted_closing_price = model.predict(X_test_reshaped)
-# predicted_closing_price = scaler.inverse_transform(predicted_closing_price)
-
 # Visualize the predicted stock costs with actual stock costs
-train_data = cleaned_dataset[:987]
-valid_data = cleaned_dataset[987:]
-valid_data['Predictions'] = predicted_closing_price
-plt.plot(train_data["Close"])
-plt.plot(valid_data[['Close',"Predictions"]])
+# train_data = cleaned_dataset[:987]
+# valid_data = cleaned_dataset[987:]
+# valid_data['Predictions'] = predicted_closing_price
+# plt.plot(train_data["Close"])
+# plt.plot(valid_data[['Close',"Predictions"]])
+
+import pickle
 
 # Save the LSTM model
 model.save("saved_model.h5")
+
+with open('scaler.pkl', 'wb') as file:
+  pickle.dump(scaler, file)
